@@ -91,7 +91,7 @@ ${transcript}
 }
 
 async function evaluateTranscript({ transcript, criteriaItems, note }) {
-  const apiKey = getSetting('gemini_api_key');
+  const apiKey = (getSetting('gemini_api_key') || process.env.GEMINI_API_KEY);
   if (!apiKey) {
     const err = new Error('GEMINI_API_KEY_MISSING');
     err.code = 'GEMINI_API_KEY_MISSING';
@@ -127,7 +127,7 @@ async function evaluateTranscript({ transcript, criteriaItems, note }) {
 }
 
 async function evaluateRecording({ filePath, criteriaItems, note }) {
-  const apiKey = getSetting('gemini_api_key');
+  const apiKey = (getSetting('gemini_api_key') || process.env.GEMINI_API_KEY);
   if (!apiKey) {
     const err = new Error('GEMINI_API_KEY_MISSING');
     err.code = 'GEMINI_API_KEY_MISSING';

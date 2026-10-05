@@ -699,7 +699,7 @@ app.get('/api/permissions/me', auth, (req, res) => {
 // ---------- Settings ----------
 
 app.get('/api/settings', auth, requirePerm('settings', 'view'), (req, res) => {
-  const key = getSetting('gemini_api_key');
+  const key = (getSetting('gemini_api_key') || process.env.GEMINI_API_KEY);
   const importKey = getSetting('api_import_key');
   let autoTemplateIds = [];
   try { autoTemplateIds = JSON.parse(getSetting('auto_evaluate_template_ids', '[]')); } catch (e) {}
