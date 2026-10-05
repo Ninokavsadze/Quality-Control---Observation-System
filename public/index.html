@@ -599,9 +599,14 @@ async function renderRecordings(){
     </div>
     <div class="stat-row" id="statRow"></div>
     <div class="card">
+      ${ME.role === 'admin' ? `<div id="bulkBar" style="display:none;align-items:center;gap:12px;margin-bottom:12px;">
+        <span id="bulkCount" class="muted"></span>
+        <button class="btn btn-danger" id="bulkDeleteBtn">მონიშნულის წაშლა</button>
+      </div>` : ''}
       <div class="table-wrap">
         <table>
           <thead><tr>
+            ${ME.role === 'admin' ? '<th style="width:34px;"><input type="checkbox" id="selAll" title="ყველას მონიშვნა"></th>' : ''}
             <th>#</th><th>ტიპი</th><th>თანამშრომელი</th><th>ფილიალი</th><th>შენიშვნა</th>
             <th>თარიღი</th><th>ხანგრძლივობა</th><th>ჩანაწერი</th><th>შეფასება</th><th></th>
           </tr></thead>
@@ -648,6 +653,7 @@ async function loadRecordings(){
   if (rows.length === 0){
     tbody.innerHTML = '';
     $('#recEmpty').innerHTML = '<div class="empty-state">ჩანაწერები ვერ მოიძებნა</div>';
+    setupBulkSelect();
     return;
   }
   $('#recEmpty').innerHTML = '';
@@ -657,6 +663,7 @@ async function loadRecordings(){
       ? `<span class="score-pill">${r.overall_score} / ${r.eval_max_score}</span>`
       : `<span class="status-pill ${st.cls}">${st.label}</span>`;
     return `<tr>
+      ${ME.role === 'admin' ? `<td><input type="checkbox" class="recSel" value="${r.id}"></td>` : ''}
       <td>#${r.id}</td>
       <td>${r.type === 'observation' ? 'დაკვირვება' : 'ხელით ატვირთული'}</td>
       <td>${esc(r.employee_name || '—')}</td>
@@ -669,6 +676,39 @@ async function loadRecordings(){
       <td><button class="icon-btn" onclick="openRecordingDetail(${r.id})">დეტალურად</button></td>
     </tr>`;
   }).join('');
+  setupBulkSelect();
+}
+
+// Bulk selection + delete (admin only — the server enforces this too).
+function updateBulkBar(){
+  if (ME.role !== 'admin') return;
+  const boxes = $$('.recSel');
+  const n = boxes.filter(b => b.checked).length;
+  $('#bulkBar').style.display = n ? 'flex' : 'none';
+  $('#bulkCount').textContent = `მონიშნულია: ${n}`;
+  const all = $('#selAll');
+  all.checked = n > 0 && n === boxes.length;
+  all.indeterminate = n > 0 && n < boxes.length;
+}
+
+function setupBulkSelect(){
+  if (ME.role !== 'admin') return;
+  $$('.recSel').forEach(b => b.addEventListener('change', updateBulkBar));
+  $('#selAll').onchange = (e) => { $$('.recSel').forEach(b => { b.checked = e.target.checked; }); updateBulkBar(); };
+  $('#bulkDeleteBtn').onclick = bulkDeleteRecordings;
+  updateBulkBar();
+}
+
+async function bulkDeleteRecordings(){
+  const ids = $$('.recSel').filter(b => b.checked).map(b => Number(b.value));
+  if (!ids.length) return;
+  if (!confirm(`ნამდვილად გსურთ ${ids.length} ჩანაწერის წაშლა? აუდიო, ფოტოები და შეფასებები სამუდამოდ წაიშლება.`)) return;
+  let failed = 0;
+  for (const id of ids){
+    try { await api('/recordings/' + id, {method:'DELETE'}); } catch(e){ failed++; }
+  }
+  showToast(failed ? `წაიშალა ${ids.length - failed}, ვერ წაიშალა ${failed}` : `წაიშალა ${ids.length} ჩანაწერი`, !!failed);
+  loadRecordings();
 }
 
 async function openRecordingDetail(id){
