@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: observation-qa
+    runtime: node
+    plan: starter            # persistent disk requires a paid plan
+    buildCommand: npm install --omit=dev
+    startCommand: node server.js
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: 22.12.0       # node:sqlite needs Node >= 22.5
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: observation-qa-data
+      mountPath: /var/data
+      sizeGB: 5
