@@ -13,6 +13,8 @@ fs.mkdirSync(DATA_DIR, { recursive: true });
 const RESTORE_FILE = path.join(DATA_DIR, 'restore-pending.tar.gz');
 if (fs.existsSync(RESTORE_FILE)) {
   try {
+    // Leftover WAL/SHM files of the previous (empty) database must not be replayed onto the restored one.
+    for (const f of ['app.db-wal', 'app.db-shm']) { try { fs.unlinkSync(path.join(DATA_DIR, f)); } catch (e) { /* none */ } }
     require('child_process').execFileSync('tar', ['-xzf', RESTORE_FILE, '-C', DATA_DIR]);
     console.log('მონაცემები აღდგენილია ბექაფიდან.');
   } catch (e) {
