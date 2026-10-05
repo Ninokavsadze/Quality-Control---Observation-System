@@ -1,0 +1,1592 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>დაკვირვების ხარისხის კონტროლი</title>
+<style>
+  :root{
+    --navy:#0E4F8E;
+    --navy-dark:#0a3a68;
+    --yellow:#FCBB2D;
+    --lightblue:#B8D2E8;
+    --bg:#f2f5f9;
+    --white:#ffffff;
+    --text:#1f2937;
+    --muted:#6b7280;
+    --danger:#dc2626;
+    --success:#16a34a;
+    --warning:#b45309;
+    --border:#e2e8f0;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    font-size:15px;
+  }
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;font-size:14px;}
+
+  /* ---------- Login ---------- */
+  #loginScreen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:linear-gradient(135deg,var(--navy) 0%,var(--navy-dark) 100%);
+    padding:20px;
+  }
+  .login-card{
+    background:var(--white);
+    border-radius:16px;
+    padding:40px 32px;
+    width:100%;
+    max-width:380px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.25);
+  }
+  .login-card h1{
+    font-size:20px;
+    margin:0 0 4px;
+    color:var(--navy-dark);
+  }
+  .login-card p.subtitle{
+    margin:0 0 24px;
+    color:var(--muted);
+    font-size:13px;
+  }
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);}
+  .field input, .field select, .field textarea{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    outline:none;
+    transition:border-color .15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{border-color:var(--navy);}
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:10px 18px;
+    border-radius:8px;
+    border:none;
+    font-weight:600;
+    font-size:14px;
+    transition:filter .15s, transform .05s;
+  }
+  .btn:active{transform:scale(0.98);}
+  .btn-primary{background:var(--navy);color:#fff;}
+  .btn-primary:hover{filter:brightness(1.1);}
+  .btn-yellow{background:var(--yellow);color:var(--navy-dark);}
+  .btn-yellow:hover{filter:brightness(1.05);}
+  .btn-outline{background:#fff;color:var(--navy);border:1px solid var(--navy);}
+  .btn-outline:hover{background:var(--lightblue);}
+  .btn-danger{background:#fff;color:var(--danger);border:1px solid var(--danger);}
+  .btn-danger:hover{background:#fef2f2;}
+  .btn-block{width:100%;}
+  .btn:disabled{opacity:0.55;cursor:not-allowed;}
+  .error-msg{
+    background:#fef2f2;color:var(--danger);border:1px solid #fecaca;
+    padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:16px;
+  }
+  .hint{font-size:12px;color:var(--muted);margin-top:6px;}
+
+  /* ---------- App shell ---------- */
+  #app{display:none;min-height:100vh;}
+  .app-shell{display:flex;min-height:100vh;}
+
+  .sidebar{
+    width:240px;
+    flex-shrink:0;
+    background:var(--navy-dark);
+    color:#fff;
+    display:flex;
+    flex-direction:column;
+    position:fixed;
+    top:0;left:0;bottom:0;
+    z-index:30;
+    transition:transform .2s;
+  }
+  .sidebar .brand{
+    padding:22px 20px 16px;
+    font-weight:700;
+    font-size:16px;
+    border-bottom:1px solid rgba(255,255,255,0.12);
+    display:flex;align-items:center;gap:10px;
+  }
+  .sidebar .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--yellow);flex-shrink:0;}
+  .nav-list{list-style:none;margin:0;padding:12px 10px;flex:1;overflow-y:auto;}
+  .nav-list li + li{margin-top:2px;}
+  .nav-btn{
+    width:100%;text-align:left;
+    background:none;border:none;color:rgba(255,255,255,0.85);
+    padding:11px 14px;border-radius:8px;font-size:14px;
+    display:flex;align-items:center;justify-content:flex-start;gap:10px;
+  }
+  .nav-btn:hover{background:rgba(255,255,255,0.08);}
+  .nav-btn.active{background:var(--navy);color:#fff;font-weight:600;}
+  .sidebar-footer{padding:14px 16px;border-top:1px solid rgba(255,255,255,0.12);font-size:12px;color:rgba(255,255,255,0.65);}
+
+  .main{
+    flex:1;
+    margin-left:240px;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+  }
+  .topbar{
+    background:#fff;
+    border-bottom:1px solid var(--border);
+    padding:14px 24px;
+    display:flex;align-items:center;justify-content:space-between;
+    position:sticky;top:0;z-index:20;
+  }
+  .topbar h2{margin:0;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:44vw;}
+  .user-chip{
+    display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);
+    position:relative;
+  }
+  .user-chip .avatar{
+    width:34px;height:34px;border-radius:50%;background:var(--lightblue);
+    display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--navy-dark);
+  }
+  .hamburger{display:none;background:none;border:none;font-size:22px;color:var(--navy-dark);padding:4px 8px;}
+  .content{padding:22px 24px;flex:1;}
+
+  .role-badge{
+    display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;
+  }
+  .role-badge.admin{background:#fee2e2;color:#991b1b;}
+  .role-badge.manager{background:#e0e7ff;color:#3730a3;}
+  .role-badge.employee{background:#dcfce7;color:#166534;}
+
+  /* ---------- Cards / stats ---------- */
+  .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:20px;}
+  .stat-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
+  .stat-card .label{font-size:12px;color:var(--muted);margin-bottom:6px;}
+  .stat-card .value{font-size:26px;font-weight:700;color:var(--navy-dark);}
+  .stat-card .sub{font-size:12px;color:var(--muted);margin-top:2px;}
+
+  /* ---------- Analytics / charts ---------- */
+  .viz-root{
+    --viz-surface:#fcfcfb; --viz-text-primary:#0b0b0b; --viz-text-secondary:#52514e; --viz-muted:#898781;
+    --viz-grid:#e1e0d9; --viz-axis:#c3c2b7; --viz-seq-mid:#256abf; --viz-seq-dark:#184f95; --viz-seq-light:#cde2fb;
+    --viz-good:#0ca30c; --viz-critical:#d03b3b;
+  }
+  .chart-card{background:var(--viz-surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px;}
+  .chart-card h3{margin:0 0 4px;font-size:15px;color:var(--text);}
+  .chart-card .chart-sub{font-size:12px;color:var(--viz-muted);margin-bottom:14px;}
+  .chart-empty{padding:30px 10px;text-align:center;color:var(--viz-muted);font-size:13px;}
+  .viz-axis-label{font-size:11px;fill:var(--viz-muted);}
+  .viz-value-label{font-size:12px;fill:var(--viz-text-primary);font-weight:600;}
+  .viz-cat-label{font-size:12.5px;fill:var(--viz-text-secondary);}
+  .bar-row{cursor:default;}
+  .bar-row rect{transition:opacity .1s;}
+  .bar-row:hover rect{opacity:0.85;}
+
+  .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  @media (max-width:960px){.charts-grid{grid-template-columns:1fr;}}
+
+  .sw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
+  .sw-card{border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:#fff;}
+  .sw-card h4{margin:0 0 10px;font-size:14px;color:var(--navy-dark);}
+  .sw-row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12.5px;padding:5px 0;}
+  .sw-row .txt{display:flex;align-items:center;gap:6px;color:var(--text);}
+  .sw-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .sw-dot.good{background:var(--viz-good);}
+  .sw-dot.bad{background:var(--viz-critical);}
+  .sw-pct{font-weight:700;font-variant-numeric:tabular-nums;}
+  .sw-pct.good{color:var(--viz-good);}
+  .sw-pct.bad{color:var(--viz-critical);}
+
+  .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px;}
+  .card h3{margin:0 0 16px;font-size:15px;}
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px;}
+  .toolbar .field{margin-bottom:0;min-width:150px;flex:1;}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  thead th{
+    text-align:left;font-size:12px;color:var(--muted);font-weight:700;
+    padding:10px 10px;border-bottom:2px solid var(--border);white-space:nowrap;
+  }
+  tbody td{padding:10px 10px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap;}
+  tbody tr:hover{background:#f8fafc;}
+  .table-wrap{overflow-x:auto;}
+  .status-pill{padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;display:inline-block;}
+  .status-pending{background:#f1f5f9;color:#475569;}
+  .status-processing{background:#fef9c3;color:#854d0e;}
+  .status-evaluated{background:#dcfce7;color:#166534;}
+  .status-error{background:#fee2e2;color:#991b1b;}
+  .score-pill{font-weight:700;padding:3px 10px;border-radius:999px;font-size:12px;background:var(--lightblue);color:var(--navy-dark);}
+  .icon-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:13px;color:var(--navy);}
+  .icon-btn:hover{background:var(--lightblue);}
+  .muted{color:var(--muted);}
+
+  /* ---------- Modal ---------- */
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(15,23,42,0.55);
+    display:none;align-items:center;justify-content:center;z-index:100;padding:20px;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:#fff;border-radius:14px;max-width:640px;width:100%;
+    max-height:90vh;overflow-y:auto;padding:24px;
+  }
+  .modal.wide{max-width:820px;}
+  .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+  .modal-header h3{margin:0;font-size:17px;}
+  .modal-close{background:none;border:none;font-size:22px;color:var(--muted);line-height:1;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
+
+  /* ---------- Photo gallery ---------- */
+  .photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-top:8px;}
+  .photo-thumb{position:relative;border-radius:8px;overflow:hidden;background:#f1f1ef;aspect-ratio:1/1;}
+  .photo-thumb img{width:100%;height:100%;object-fit:cover;cursor:pointer;display:block;}
+  .photo-thumb .photo-del{
+    position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:none;
+    background:rgba(0,0,0,0.6);color:#fff;font-size:14px;line-height:1;cursor:pointer;
+  }
+  .photo-upload-label{
+    display:inline-flex;align-items:center;gap:6px;cursor:pointer;margin-top:10px;
+  }
+
+  /* ---------- Observation recorder ---------- */
+  .recorder-wrap{max-width:480px;margin:0 auto;text-align:center;}
+  .record-btn{
+    width:140px;height:140px;border-radius:50%;border:none;
+    background:var(--danger);color:#fff;font-size:15px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;margin:20px auto;
+    box-shadow:0 8px 24px rgba(220,38,38,0.35);
+  }
+  .record-btn.recording{animation:pulse 1.4s infinite;}
+  .record-btn .rec-dot{width:16px;height:16px;border-radius:4px;background:#fff;margin-left:8px;}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(220,38,38,0.45);}
+    70%{box-shadow:0 0 0 22px rgba(220,38,38,0);}
+    100%{box-shadow:0 0 0 0 rgba(220,38,38,0);}
+  }
+  .timer{font-size:34px;font-weight:700;color:var(--navy-dark);font-variant-numeric:tabular-nums;margin-bottom:6px;}
+
+  .criteria-item-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;}
+  .criteria-item-row textarea{flex:1;min-height:44px;resize:vertical;}
+  .criteria-item-row input[type=number]{width:90px;}
+
+  .criterion-result{border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+  .criterion-result .top{display:flex;justify-content:space-between;gap:10px;font-weight:600;margin-bottom:4px;}
+  .criterion-result .comment{font-size:13px;color:var(--muted);}
+
+  /* ---------- Transcript speaker colors ---------- */
+  .transcript-box{white-space:normal;}
+  .transcript-box div{padding:2px 0;}
+  .transcript-cust{color:#1f7a3d;}
+  .transcript-emp{color:#8b5e34;}
+
+  .checkbox-row{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
+  .checkbox-row:last-child{border-bottom:none;}
+
+  .empty-state{text-align:center;color:var(--muted);padding:40px 10px;font-size:14px;}
+  .toast{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:var(--navy-dark);color:#fff;padding:12px 20px;border-radius:10px;
+    font-size:13px;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,0.3);
+    display:none;
+  }
+  .toast.show{display:block;}
+  .toast.error{background:var(--danger);}
+
+  audio{width:100%;margin-top:8px;}
+
+  @media (max-width:860px){
+    .sidebar{transform:translateX(-100%);}
+    .sidebar.open{transform:translateX(0);}
+    .main{margin-left:0;}
+    .hamburger{display:inline-block;}
+    .content{padding:16px;}
+    .stat-row{grid-template-columns:repeat(2,1fr);}
+    .user-chip > div:first-child{display:none;}
+    .topbar{padding:12px 14px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="loginScreen">
+  <div class="login-card">
+    <h1>CRM - ხარისხის კონტროლი</h1>
+    <p class="subtitle">Zoommer — შესვლა სისტემაში</p>
+    <div id="loginError" class="error-msg" style="display:none;"></div>
+    <form id="loginForm">
+      <div class="field">
+        <label>მომხმარებელი</label>
+        <input type="text" id="loginUsername" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label>პაროლი</label>
+        <input type="password" id="loginPassword" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">შესვლა</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="app">
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand"><span class="dot"></span> დაკვირვების AI QA</div>
+      <ul class="nav-list" id="navList"></ul>
+      <div class="sidebar-footer">Zoommer &middot; ვერსია 1.0 (ლოკალური)</div>
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <button class="hamburger" id="hamburgerBtn">&#9776;</button>
+          <h2 id="pageTitle">ჩანაწერები</h2>
+        </div>
+        <div class="user-chip">
+          <div style="text-align:left;">
+            <div style="font-weight:600;color:var(--text);" id="userNameLabel"></div>
+            <span class="role-badge" id="userRoleBadge"></span>
+          </div>
+          <div class="avatar" id="userAvatar"></div>
+          <button class="icon-btn" id="logoutBtn">გასვლა</button>
+        </div>
+      </div>
+      <div class="content" id="content"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" id="modalBox"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========================================================================
+   STATE & UTIL
+   ======================================================================== */
+let ME = null;
+let BRANCHES = [];
+let USERS = [];
+let TEMPLATES = [];
+let CURRENT_VIEW = 'recordings';
+let CURRENT_DETAIL = null;
+let PERMS = {}; // {pageId: {view, edit}} — effective permissions for the current user's role
+
+const $ = (sel, root=document) => root.querySelector(sel);
+const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+function esc(str){
+  return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Colors dialogue lines by speaker — მომხმარებელი (customer) / თანამშრომელი (consultant) —
+// when the transcript follows a "სპიკერი: ტექსტი" line format; other lines render plain.
+function formatTranscript(text){
+  if (!text) return '';
+  return text.split('\n').map(line => {
+    const m = line.match(/^\s*(თანამშრომელი|მომხმარებელი)(\s*:\s*)(.*)$/);
+    if (!m) return `<div>${esc(line)}</div>`;
+    const cls = m[1] === 'თანამშრომელი' ? 'transcript-emp' : 'transcript-cust';
+    return `<div class="${cls}"><strong>${esc(m[1])}:</strong> ${esc(m[3])}</div>`;
+  }).join('');
+}
+
+function showToast(msg, isError){
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+async function api(path, opts={}){
+  const res = await fetch('/api' + path, {
+    method: opts.method || 'GET',
+    headers: opts.body instanceof FormData ? undefined : {'Content-Type':'application/json'},
+    body: opts.body instanceof FormData ? opts.body : (opts.body ? JSON.stringify(opts.body) : undefined),
+  });
+  let data = null;
+  try { data = await res.json(); } catch(e) {}
+  if (!res.ok){
+    const err = new Error((data && data.error) || ('HTTP ' + res.status));
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
+function fmtDate(iso){
+  if (!iso) return '—';
+  const d = new Date(iso.replace(' ', 'T') + 'Z');
+  return d.toLocaleString('ka-GE', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
+}
+function fmtDuration(sec){
+  if (sec === null || sec === undefined) return '—';
+  sec = Math.round(sec);
+  const m = Math.floor(sec/60), s = sec%60;
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+const ROLE_LABELS = {admin:'ადმინისტრატორი', manager:'მენეჯერი', employee:'თანამშრომელი'};
+const STATUS_LABELS = {
+  pending:{label:'არ არის შეფასებული', cls:'status-pending'},
+  processing:{label:'მუშავდება…', cls:'status-processing'},
+  evaluated:{label:'შეფასებულია', cls:'status-evaluated'},
+  error:{label:'შეცდომა', cls:'status-error'},
+};
+
+function openModal(html, wide){
+  $('#modalBox').className = 'modal' + (wide ? ' wide' : '');
+  $('#modalBox').innerHTML = html;
+  $('#modalBackdrop').classList.add('open');
+}
+function closeModal(){
+  $('#modalBackdrop').classList.remove('open');
+  $('#modalBox').innerHTML = '';
+}
+$('#modalBackdrop').addEventListener('click', (e) => { if (e.target === $('#modalBackdrop')) closeModal(); });
+
+/* ========================================================================
+   BOOTSTRAP / LOGIN
+   ======================================================================== */
+async function boot(){
+  try{
+    ME = await api('/auth/me');
+    $('#loginScreen').style.display = 'none';
+    await enterApp();
+  }catch(e){
+    $('#loginScreen').style.display = 'flex';
+  }
+}
+
+$('#loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('#loginError').style.display = 'none';
+  try{
+    ME = await api('/auth/login', {method:'POST', body:{
+      username: $('#loginUsername').value.trim(),
+      password: $('#loginPassword').value,
+    }});
+    $('#loginScreen').style.display = 'none';
+    await enterApp();
+  }catch(err){
+    $('#loginError').textContent = 'არასწორი მომხმარებელი ან პაროლი';
+    $('#loginError').style.display = 'block';
+  }
+});
+
+$('#logoutBtn').addEventListener('click', async () => {
+  await api('/auth/logout', {method:'POST'});
+  location.reload();
+});
+
+$('#hamburgerBtn').addEventListener('click', () => $('#sidebar').classList.toggle('open'));
+
+async function enterApp(){
+  $('#app').style.display = 'block';
+  $('#userNameLabel').textContent = ME.full_name;
+  $('#userAvatar').textContent = (ME.full_name || '?').trim().charAt(0);
+  $('#userRoleBadge').textContent = ROLE_LABELS[ME.role] || ME.role;
+  $('#userRoleBadge').className = 'role-badge ' + ME.role;
+
+  PERMS = await api('/permissions/me');
+  BRANCHES = await api('/branches');
+  if (ME.role !== 'employee') {
+    try { USERS = await api('/users'); } catch(e){}
+    try { TEMPLATES = await api('/criteria-templates'); } catch(e){}
+  }
+
+  buildNav();
+  const firstAllowed = NAV_ITEMS.find(i => PERMS[i.id]?.view);
+  if (firstAllowed) navigate(firstAllowed.id);
+  else $('#content').innerHTML = '<div class="empty-state">თქვენს როლს არცერთი გვერდის ნახვის უფლება არ აქვს მინიჭებული. მიმართეთ ადმინისტრატორს.</div>';
+}
+
+/* ========================================================================
+   NAVIGATION
+   ======================================================================== */
+const NAV_ITEMS = [
+  {id:'recordings', label:'ჩანაწერები'},
+  {id:'analytics', label:'ანალიტიკა'},
+  {id:'observe', label:'დაკვირვების ჩაწერა'},
+  {id:'manual-upload', label:'ზარის ხელით ატვირთვა'},
+  {id:'criteria', label:'შეფასების კრიტერიუმები'},
+  {id:'users', label:'თანამშრომლები და როლები'},
+  {id:'branches', label:'ფილიალები'},
+  {id:'settings', label:'პარამეტრები'},
+];
+
+function buildNav(){
+  const list = $('#navList');
+  list.innerHTML = '';
+  NAV_ITEMS.filter(i => PERMS[i.id]?.view).forEach(item => {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.className = 'nav-btn';
+    btn.dataset.view = item.id;
+    btn.textContent = item.label;
+    btn.addEventListener('click', () => { navigate(item.id); $('#sidebar').classList.remove('open'); });
+    li.appendChild(btn);
+    list.appendChild(li);
+  });
+}
+
+const VIEW_TITLES = {
+  recordings:'ჩანაწერები', analytics:'ანალიტიკა', observe:'დაკვირვების ჩაწერა', 'manual-upload':'ზარის ხელით ატვირთვა',
+  criteria:'შეფასების კრიტერიუმები', users:'თანამშრომლები და როლები', branches:'ფილიალები', settings:'პარამეტრები'
+};
+
+async function navigate(view){
+  CURRENT_VIEW = view;
+  $$('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  $('#pageTitle').textContent = VIEW_TITLES[view] || '';
+  const c = $('#content');
+  c.innerHTML = '<div class="empty-state">იტვირთება…</div>';
+  try{
+    if (view === 'recordings') await renderRecordings();
+    else if (view === 'analytics') await renderAnalytics();
+    else if (view === 'observe') await renderObserve();
+    else if (view === 'manual-upload') await renderManualUpload();
+    else if (view === 'criteria') await renderCriteria();
+    else if (view === 'users') await renderUsers();
+    else if (view === 'branches') await renderBranches();
+    else if (view === 'settings') await renderSettings();
+  }catch(e){
+    console.error(e);
+    c.innerHTML = `<div class="error-msg">გვერდის ჩატვირთვა ვერ მოხერხდა: ${esc(e.message)}</div>`;
+  }
+}
+
+/* ========================================================================
+   VIEW: RECORDINGS (registry / report)
+   ======================================================================== */
+async function renderRecordings(){
+  const c = $('#content');
+  const branchOptions = BRANCHES.map(b => `<option value="${b.id}">${esc(b.name)}</option>`).join('');
+  const employeeOptions = USERS.filter(u => u.role === 'employee' || u.role === 'manager')
+    .map(u => `<option value="${u.id}">${esc(u.full_name)}</option>`).join('');
+
+  c.innerHTML = `
+    <div class="card">
+      <div class="toolbar">
+        <div class="field"><label>თარიღი — დან</label><input type="date" id="fltFrom"></div>
+        <div class="field"><label>თარიღი — მდე</label><input type="date" id="fltTo"></div>
+        <div class="field"><label>ფილიალი</label>
+          <select id="fltBranch"><option value="">ყველა</option>${branchOptions}</select>
+        </div>
+        ${ME.role !== 'employee' ? `<div class="field"><label>თანამშრომელი</label>
+          <select id="fltEmployee"><option value="">ყველა</option>${employeeOptions}</select></div>` : ''}
+        <div class="field"><label>სტატუსი</label>
+          <select id="fltStatus"><option value="">ყველა</option>
+            <option value="pending">არ არის შეფასებული</option>
+            <option value="processing">მუშავდება</option>
+            <option value="evaluated">შეფასებულია</option>
+            <option value="error">შეცდომა</option>
+          </select>
+        </div>
+        <div class="field"><label>&nbsp;</label><button class="btn btn-primary" id="applyFilters">ძებნა</button></div>
+      </div>
+    </div>
+    <div class="stat-row" id="statRow"></div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th><th>ტიპი</th><th>თანამშრომელი</th><th>ფილიალი</th><th>შენიშვნა</th>
+            <th>თარიღი</th><th>ხანგრძლივობა</th><th>ჩანაწერი</th><th>შეფასება</th><th></th>
+          </tr></thead>
+          <tbody id="recTbody"></tbody>
+        </table>
+      </div>
+      <div id="recEmpty"></div>
+    </div>
+  `;
+  $('#applyFilters').addEventListener('click', loadRecordings);
+  await loadRecordings();
+}
+
+async function loadRecordings(){
+  const params = new URLSearchParams();
+  const from = $('#fltFrom')?.value, to = $('#fltTo')?.value, branch = $('#fltBranch')?.value;
+  const employee = $('#fltEmployee')?.value, status = $('#fltStatus')?.value;
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  if (branch) params.set('branch_id', branch);
+  if (employee) params.set('employee_id', employee);
+  if (status) params.set('status', status);
+
+  const rows = await api('/recordings?' + params.toString());
+
+  const total = rows.length;
+  const evaluated = rows.filter(r => r.status === 'evaluated').length;
+  const pending = rows.filter(r => r.status === 'pending').length;
+  const avgScore = (() => {
+    const scored = rows.filter(r => r.overall_score !== null && r.eval_max_score);
+    if (!scored.length) return '—';
+    const pct = scored.reduce((s,r) => s + (r.overall_score / r.eval_max_score * 100), 0) / scored.length;
+    return pct.toFixed(1) + '%';
+  })();
+
+  $('#statRow').innerHTML = `
+    <div class="stat-card"><div class="label">ჩანაწერები სულ</div><div class="value">${total}</div></div>
+    <div class="stat-card"><div class="label">შეფასებული</div><div class="value">${evaluated}</div></div>
+    <div class="stat-card"><div class="label">არშეფასებული</div><div class="value">${pending}</div></div>
+    <div class="stat-card"><div class="label">საშუალო ქულა</div><div class="value">${avgScore}</div></div>
+  `;
+
+  const tbody = $('#recTbody');
+  if (rows.length === 0){
+    tbody.innerHTML = '';
+    $('#recEmpty').innerHTML = '<div class="empty-state">ჩანაწერები ვერ მოიძებნა</div>';
+    return;
+  }
+  $('#recEmpty').innerHTML = '';
+  tbody.innerHTML = rows.map(r => {
+    const st = STATUS_LABELS[r.status] || STATUS_LABELS.pending;
+    const scoreCell = (r.status === 'evaluated' && r.eval_max_score)
+      ? `<span class="score-pill">${r.overall_score} / ${r.eval_max_score}</span>`
+      : `<span class="status-pill ${st.cls}">${st.label}</span>`;
+    return `<tr>
+      <td>#${r.id}</td>
+      <td>${r.type === 'observation' ? 'დაკვირვება' : 'ხელით ატვირთული'}</td>
+      <td>${esc(r.employee_name || '—')}</td>
+      <td>${esc(r.branch_name || '—')}</td>
+      <td style="max-width:180px;white-space:normal;">${esc(r.note || '—')}</td>
+      <td>${fmtDate(r.created_at)}</td>
+      <td>${fmtDuration(r.duration_seconds)}</td>
+      <td><audio controls preload="none" src="/api/recordings/${r.id}/audio" style="width:190px;height:32px;"></audio></td>
+      <td>${scoreCell}</td>
+      <td><button class="icon-btn" onclick="openRecordingDetail(${r.id})">დეტალურად</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function openRecordingDetail(id){
+  const rec = await api('/recordings/' + id);
+  CURRENT_DETAIL = rec;
+  const canEvaluate = !!PERMS.recordings?.edit;
+  const ev = rec.evaluation;
+
+  let evalHtml = '';
+  if (ev){
+    evalHtml = `
+      <h3 style="margin-top:24px;">შეფასების შედეგი (${ev.overall_score} / ${ev.max_score})</h3>
+      <p class="muted">${esc(ev.summary || '')}</p>
+      ${ev.items.map(it => `
+        <div class="criterion-result">
+          <div class="top"><span>${esc(it.criterion_text)}</span><span class="score-pill">${it.score} / ${it.max_score}</span></div>
+          <div class="comment">${esc(it.comment || '')}</div>
+        </div>
+      `).join('')}
+      <h3>ტრანსკრიფცია</h3>
+      <div class="card transcript-box" style="background:#f8fafc;max-height:220px;overflow-y:auto;font-size:13px;">${formatTranscript(ev.transcript)}</div>
+    `;
+  } else if (rec.status === 'error'){
+    evalHtml = `<div class="error-msg">${esc(rec.error_message || 'შეფასება ვერ განხორციელდა')}</div>`;
+  } else if (rec.status === 'processing'){
+    evalHtml = `<div class="empty-state">მიმდინარეობს Gemini-ის მიერ დამუშავება…</div>`;
+  }
+
+  const canManagePhotos = ME.role === 'admin' || ME.role === 'manager' || rec.employee_id === ME.id;
+
+  openModal(`
+    <div class="modal-header"><h3>ჩანაწერი #${rec.id}</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
+    <div><strong>თანამშრომელი:</strong> ${esc(rec.employee_name || '—')} &nbsp; | &nbsp;
+         <strong>ფილიალი:</strong> ${esc(rec.branch_name || '—')} &nbsp; | &nbsp;
+         <strong>თარიღი:</strong> ${fmtDate(rec.created_at)}</div>
+    ${rec.note ? `<p class="muted" style="margin-top:6px;">${esc(rec.note)}</p>` : ''}
+    <audio controls src="/api/recordings/${rec.id}/audio"></audio>
+    ${(canEvaluate || ev) ? `<div class="modal-actions" style="justify-content:flex-start;margin-top:14px;flex-wrap:wrap;">
+      ${canEvaluate ? `<button class="btn btn-yellow" onclick="openEvaluatePicker(${rec.id})">${ev ? 'ხელახლა შეფასება' : 'AI შეფასების დაწყება'}</button>` : ''}
+      ${ev ? `<button class="btn btn-outline" onclick="downloadEvaluationPdf()">PDF-ად გადმოწერა</button>` : ''}
+      ${canEvaluate && ME.role === 'admin' ? `<button class="btn btn-danger" onclick="deleteRecording(${rec.id})">წაშლა</button>` : ''}
+    </div>` : ''}
+
+    <h3 style="margin-top:24px;">ფოტოები</h3>
+    <div class="photo-grid" id="photoGrid">${renderPhotoGrid(rec, canManagePhotos)}</div>
+    <label class="btn btn-outline photo-upload-label">
+      ფოტოს ატვირთვა
+      <input type="file" id="photoUploadInput" accept="image/*" multiple style="display:none;">
+    </label>
+
+    ${evalHtml}
+  `, true);
+
+  $('#photoUploadInput').addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    await uploadPhotos(rec.id, files);
+  });
+}
+
+function renderPhotoGrid(rec, canManage){
+  if (!rec.photos || rec.photos.length === 0){
+    return `<div class="muted" style="font-size:13px;grid-column:1/-1;">ფოტოები არ არის ატვირთული</div>`;
+  }
+  return rec.photos.map(p => `
+    <div class="photo-thumb">
+      <img src="/api/recordings/${rec.id}/photos/${p.id}" alt="" onclick="window.open('/api/recordings/${rec.id}/photos/${p.id}', '_blank')">
+      ${canManage ? `<button class="photo-del" title="წაშლა" onclick="deletePhoto(${rec.id}, ${p.id})">&times;</button>` : ''}
+    </div>
+  `).join('');
+}
+
+async function uploadPhotos(recordingId, files){
+  const fd = new FormData();
+  files.forEach(f => fd.append('photos', f));
+  try{
+    await api(`/recordings/${recordingId}/photos`, {method:'POST', body:fd});
+    showToast('ფოტოები აიტვირთა');
+    await openRecordingDetail(recordingId);
+  }catch(e){
+    showToast('ფოტოების ატვირთვა ვერ მოხერხდა: ' + e.message, true);
+  }
+}
+
+async function deletePhoto(recordingId, photoId){
+  if (!confirm('ნამდვილად გსურთ ამ ფოტოს წაშლა?')) return;
+  try{
+    await api(`/recordings/${recordingId}/photos/${photoId}`, {method:'DELETE'});
+    await openRecordingDetail(recordingId);
+  }catch(e){
+    showToast('ფოტოს წაშლა ვერ მოხერხდა: ' + e.message, true);
+  }
+}
+
+function downloadEvaluationPdf(){
+  const rec = CURRENT_DETAIL;
+  if (!rec || !rec.evaluation) return;
+  const ev = rec.evaluation;
+  const win = window.open('', '_blank');
+  if (!win){ showToast('ბრაუზერმა დაბლოკა ახალი ფანჯარა — დაუშვით pop-up და სცადეთ თავიდან', true); return; }
+  const html = `<!doctype html>
+<html lang="ka"><head><meta charset="utf-8">
+<title>შეფასება #${rec.id}</title>
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#111;padding:32px;max-width:760px;margin:0 auto;}
+  h1{font-size:20px;margin:0 0 4px;}
+  h2{font-size:15px;margin:24px 0 8px;border-bottom:1px solid #ddd;padding-bottom:6px;}
+  .meta{color:#444;font-size:13px;margin-bottom:4px;}
+  .meta strong{color:#111;}
+  .note{color:#555;font-size:13px;margin:8px 0;}
+  .score-badge{display:inline-block;background:#eef2ff;color:#1e3a8a;border-radius:6px;padding:2px 10px;font-weight:600;font-size:13px;}
+  .summary{color:#333;font-size:13.5px;margin:6px 0 4px;}
+  .criterion{border:1px solid #e3e3e0;border-radius:8px;padding:10px 14px;margin-bottom:10px;}
+  .criterion .top{display:flex;justify-content:space-between;font-weight:600;font-size:13.5px;gap:12px;}
+  .criterion .comment{color:#555;font-size:12.5px;margin-top:4px;}
+  .transcript{font-size:12.5px;color:#333;border:1px solid #e3e3e0;border-radius:8px;padding:12px 14px;background:#fafafa;}
+  .transcript div{padding:2px 0;}
+  .transcript-cust{color:#1f7a3d;}
+  .transcript-emp{color:#8b5e34;}
+  .photos{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .photos img{width:100%;max-height:320px;object-fit:cover;border-radius:8px;border:1px solid #e3e3e0;page-break-inside:avoid;}
+  @media print{ body{padding:0;} }
+</style></head>
+<body>
+  <h1>ჩანაწერის შეფასება #${rec.id}</h1>
+  <div class="meta"><strong>თანამშრომელი:</strong> ${esc(rec.employee_name || '—')} &nbsp;|&nbsp; <strong>ფილიალი:</strong> ${esc(rec.branch_name || '—')} &nbsp;|&nbsp; <strong>თარიღი:</strong> ${fmtDate(rec.created_at)}</div>
+  ${rec.note ? `<div class="note">${esc(rec.note)}</div>` : ''}
+  ${(rec.photos && rec.photos.length) ? `
+  <h2>ფოტოები</h2>
+  <div class="photos">
+    ${rec.photos.map(p => `<img src="${location.origin}/api/recordings/${rec.id}/photos/${p.id}" alt="">`).join('')}
+  </div>` : ''}
+  <h2>შეფასების შედეგი <span class="score-badge">${ev.overall_score} / ${ev.max_score}</span></h2>
+  ${ev.summary ? `<div class="summary">${esc(ev.summary)}</div>` : ''}
+  ${ev.items.map(it => `
+    <div class="criterion">
+      <div class="top"><span>${esc(it.criterion_text)}</span><span>${it.score} / ${it.max_score}</span></div>
+      ${it.comment ? `<div class="comment">${esc(it.comment)}</div>` : ''}
+    </div>
+  `).join('')}
+  <h2>ტრანსკრიფცია</h2>
+  <div class="transcript">${ev.transcript ? formatTranscript(ev.transcript) : '—'}</div>
+</body></html>`;
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  setTimeout(() => { try{ win.focus(); win.print(); }catch(e){} }, 250);
+}
+
+async function deleteRecording(id){
+  if (!confirm('ნამდვილად გსურთ ამ ჩანაწერის წაშლა?')) return;
+  await api('/recordings/' + id, {method:'DELETE'});
+  closeModal();
+  showToast('ჩანაწერი წაიშალა');
+  loadRecordings();
+}
+
+function openEvaluatePicker(recordingId){
+  if (TEMPLATES.length === 0){
+    openModal(`
+      <div class="modal-header"><h3>შეფასების კრიტერიუმები</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
+      <p>ჯერ არ არის შექმნილი შეფასების კრიტერიუმების შაბლონი. გთხოვთ, ჯერ შექმნათ ერთი მენიუდან „შეფასების კრიტერიუმები“.</p>
+    `);
+    return;
+  }
+  openModal(`
+    <div class="modal-header"><h3>აირჩიეთ შეფასების კრიტერიუმები</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
+    <p class="hint">შეგიძლიათ ერთდროულად რამდენიმე შაბლონის მონიშვნა — ყველა მათგანის კრიტერიუმი გაერთიანდება ერთ შეფასებაში.</p>
+    <div id="templatePickList">
+      ${TEMPLATES.map(t => `
+        <label class="checkbox-row">
+          <input type="checkbox" value="${t.id}">
+          <span><strong>${esc(t.name)}</strong><br><span class="muted" style="font-size:12px;">${t.items.length} კრიტერიუმი${t.description ? ' — ' + esc(t.description) : ''}</span></span>
+        </label>
+      `).join('')}
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">გაუქმება</button>
+      <button class="btn btn-primary" id="startEvalBtn">შეფასების დაწყება</button>
+    </div>
+  `);
+  $('#startEvalBtn').addEventListener('click', async () => {
+    const ids = $$('#templatePickList input:checked').map(cb => Number(cb.value));
+    if (ids.length === 0) return showToast('აირჩიეთ სულ მცირე ერთი შაბლონი', true);
+    $('#startEvalBtn').disabled = true;
+    $('#startEvalBtn').textContent = 'მუშავდება…';
+    try{
+      await api(`/recordings/${recordingId}/evaluate`, {method:'POST', body:{template_ids: ids}});
+      showToast('შეფასება დასრულდა');
+      closeModal();
+      await openRecordingDetail(recordingId);
+      if (CURRENT_VIEW === 'recordings') loadRecordings();
+    }catch(e){
+      showToast('შეფასება ვერ განხორციელდა: ' + e.message, true);
+      closeModal();
+    }
+  });
+}
+
+/* ========================================================================
+   VIEW: ANALYTICS
+   ======================================================================== */
+const VIZ = {
+  surface:'#fcfcfb', grid:'#e1e0d9', axis:'#c3c2b7', muted:'#898781',
+  textSecondary:'#52514e', seqMid:'#256abf', seqDark:'#184f95',
+  good:'#0ca30c', critical:'#d03b3b',
+};
+
+function truncate(str, n){
+  str = String(str ?? '');
+  return str.length > n ? str.slice(0, n - 1) + '…' : str;
+}
+function fmtShortDate(dateStr){
+  const d = new Date(dateStr + 'T00:00:00Z');
+  if (isNaN(d)) return dateStr;
+  return d.toLocaleDateString('ka-GE', {day:'2-digit', month:'2-digit', timeZone:'UTC'});
+}
+function fmtPct1(v){
+  return (v === null || v === undefined) ? '—' : Math.round(v * 10) / 10 + '%';
+}
+
+/* Horizontal bar chart — one sequential hue, magnitude comparison. */
+function svgBarChart(items, {labelKey, valueKey, nKey, emptyMsg}){
+  if (!items || items.length === 0){
+    return `<div class="chart-empty">${esc(emptyMsg || 'მონაცემები არ მოიძებნა')}</div>`;
+  }
+  const rowH = 36, barH = 20, labelW = 132, padTop = 10, padBottom = 24, W = 640;
+  const chartW = W - labelW - 56;
+  const H = items.length * rowH + padTop + padBottom;
+  const ticks = [0, 25, 50, 75, 100];
+  const gridlines = ticks.map(t => {
+    const x = labelW + (t / 100) * chartW;
+    return `<line x1="${x}" y1="${padTop - 2}" x2="${x}" y2="${H - padBottom + 2}" stroke="${VIZ.grid}" stroke-width="1"/>
+      <text class="viz-axis-label" x="${x}" y="${H - padBottom + 16}" text-anchor="middle">${t}%</text>`;
+  }).join('');
+  const bars = items.map((it, i) => {
+    const y = padTop + i * rowH;
+    const value = it[valueKey] || 0;
+    const w = Math.max(2, (value / 100) * chartW);
+    const label = esc(truncate(it[labelKey], 18));
+    const fullLabel = esc(it[labelKey]);
+    const n = it[nKey];
+    return `
+      <g class="bar-row">
+        <title>${fullLabel}: ${fmtPct1(value)} (${n} შეფასება)</title>
+        <text class="viz-cat-label" x="${labelW - 8}" y="${y + barH * 0.7}" text-anchor="end">${label}</text>
+        <rect x="${labelW}" y="${y}" width="${w}" height="${barH}" rx="4" ry="4" fill="${VIZ.seqMid}"/>
+        <text class="viz-value-label" x="${labelW + w + 6}" y="${y + barH * 0.7}">${fmtPct1(value)}</text>
+      </g>`;
+  }).join('');
+  const baseline = `<line x1="${labelW}" y1="${padTop - 2}" x2="${labelW}" y2="${H - padBottom + 2}" stroke="${VIZ.axis}" stroke-width="1"/>`;
+  return `<svg class="viz-root" viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="xMinYMin meet">${gridlines}${baseline}${bars}</svg>`;
+}
+
+/* Line chart — single-series trend, no legend needed. */
+function svgLineChart(points, {emptyMsg}){
+  if (!points || points.length === 0){
+    return `<div class="chart-empty">${esc(emptyMsg || 'მონაცემები არ მოიძებნა')}</div>`;
+  }
+  const W = 640, H = 240, padL = 40, padR = 20, padT = 16, padB = 30;
+  const chartW = W - padL - padR, chartH = H - padT - padB;
+  const ticks = [0, 25, 50, 75, 100];
+  const yFor = (v) => padT + chartH - (v / 100) * chartH;
+  const xFor = (i) => points.length === 1 ? padL + chartW / 2 : padL + (i / (points.length - 1)) * chartW;
+  const gridlines = ticks.map(t => `
+    <line x1="${padL}" y1="${yFor(t)}" x2="${W - padR}" y2="${yFor(t)}" stroke="${VIZ.grid}" stroke-width="1"/>
+    <text class="viz-axis-label" x="${padL - 6}" y="${yFor(t) + 4}" text-anchor="end">${t}%</text>
+  `).join('');
+  const labelEvery = Math.max(1, Math.ceil(points.length / 7));
+  const xLabels = points.map((p, i) => (i % labelEvery === 0 || i === points.length - 1)
+    ? `<text class="viz-axis-label" x="${xFor(i)}" y="${H - padB + 16}" text-anchor="middle">${esc(fmtShortDate(p.date))}</text>` : '').join('');
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${xFor(i).toFixed(1)},${yFor(p.avgPct || 0).toFixed(1)}`).join(' ');
+  const dots = points.map((p, i) => `
+    <circle cx="${xFor(i)}" cy="${yFor(p.avgPct || 0)}" r="3.5" fill="${VIZ.seqMid}" stroke="${VIZ.surface}" stroke-width="1.5">
+      <title>${esc(fmtShortDate(p.date))}: ${fmtPct1(p.avgPct)} (${p.n} შეფასება)</title>
+    </circle>`).join('');
+  const last = points[points.length - 1];
+  const lastX = xFor(points.length - 1), lastY = yFor(last.avgPct || 0);
+  const endMarker = `<circle cx="${lastX}" cy="${lastY}" r="5" fill="${VIZ.seqDark}" stroke="${VIZ.surface}" stroke-width="2"/>
+    <text class="viz-value-label" x="${Math.min(lastX + 8, W - padR - 30)}" y="${lastY - 8}">${fmtPct1(last.avgPct)}</text>`;
+  return `<svg class="viz-root" viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="xMinYMin meet">
+    ${gridlines}${xLabels}
+    <path d="${linePath}" fill="none" stroke="${VIZ.seqMid}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    ${dots}${endMarker}
+  </svg>`;
+}
+
+function renderStrengthsWeaknesses(list){
+  if (!list || list.length === 0){
+    return '<div class="chart-empty">მონაცემები არ მოიძებნა</div>';
+  }
+  const sorted = [...list].sort((a, b) => a.branch_name.localeCompare(b.branch_name, 'ka'));
+  return `<div class="sw-grid">${sorted.map(b => {
+    const strengthRows = (b.strengths || []).map(it => `
+      <div class="sw-row"><span class="txt"><span class="sw-dot good"></span>${esc(truncate(it.criterion_text, 40))}</span><span class="sw-pct good">${fmtPct1(it.avgPct)}</span></div>`).join('');
+    const weaknessRows = (b.weaknesses || []).map(it => `
+      <div class="sw-row"><span class="txt"><span class="sw-dot bad"></span>${esc(truncate(it.criterion_text, 40))}</span><span class="sw-pct bad">${fmtPct1(it.avgPct)}</span></div>`).join('');
+    return `<div class="sw-card">
+      <h4>${esc(b.branch_name)}</h4>
+      ${strengthRows || '<div class="muted" style="font-size:12px;">ძლიერი მხარეები არ არის</div>'}
+      ${weaknessRows}
+    </div>`;
+  }).join('')}</div>`;
+}
+
+async function renderAnalytics(){
+  const c = $('#content');
+  const branchOptions = BRANCHES.map(b => `<option value="${b.id}">${esc(b.name)}</option>`).join('');
+  c.innerHTML = `
+    <div class="card">
+      <div class="toolbar">
+        <div class="field"><label>თარიღი — დან</label><input type="date" id="anFltFrom"></div>
+        <div class="field"><label>თარიღი — მდე</label><input type="date" id="anFltTo"></div>
+        <div class="field"><label>ფილიალი</label>
+          <select id="anFltBranch"><option value="">ყველა</option>${branchOptions}</select>
+        </div>
+        <div class="field"><label>&nbsp;</label><button class="btn btn-primary" id="anApplyFilters">ძებნა</button></div>
+      </div>
+    </div>
+    <div class="stat-row" id="anStatRow"></div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>შეფასებების დინამიკა</h3>
+        <div class="chart-sub">საშუალო ქულა დღეების მიხედვით</div>
+        <div id="trendChart"></div>
+      </div>
+      <div class="chart-card">
+        <h3>ფილიალების შედარება</h3>
+        <div class="chart-sub">საშუალო ქულა ფილიალის მიხედვით</div>
+        <div id="branchChart"></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>კრიტერიუმები საშუალო ქულის მიხედვით</h3>
+      <div class="chart-sub">ყველაზე სუსტი კრიტერიუმებით დაწყებული</div>
+      <div id="criterionChart"></div>
+    </div>
+    <div class="chart-card">
+      <h3>ფილიალების ძლიერი და სუსტი მხარეები</h3>
+      <div class="chart-sub">თითოეული ფილიალის საუკეთესო და გასაუმჯობესებელი კრიტერიუმები</div>
+      <div id="swSection"></div>
+    </div>
+  `;
+  $('#anApplyFilters').addEventListener('click', loadAnalytics);
+  await loadAnalytics();
+}
+
+async function loadAnalytics(){
+  const params = new URLSearchParams();
+  const from = $('#anFltFrom')?.value, to = $('#anFltTo')?.value, branch = $('#anFltBranch')?.value;
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  if (branch) params.set('branch_id', branch);
+
+  const data = await api('/analytics?' + params.toString());
+
+  $('#anStatRow').innerHTML = `
+    <div class="stat-card"><div class="label">ჩანაწერები სულ</div><div class="value">${data.summary.total}</div></div>
+    <div class="stat-card"><div class="label">შეფასებული</div><div class="value">${data.summary.evaluated}</div></div>
+    <div class="stat-card"><div class="label">საშუალო ქულა</div><div class="value">${fmtPct1(data.summary.avgPct)}</div></div>
+  `;
+
+  $('#trendChart').innerHTML = svgLineChart(data.trend, {emptyMsg:'ამ პერიოდში შეფასებები არ მოიძებნა'});
+  $('#branchChart').innerHTML = svgBarChart(data.byBranch, {labelKey:'branch_name', valueKey:'avgPct', nKey:'n', emptyMsg:'ფილიალების მონაცემები არ მოიძებნა'});
+  $('#criterionChart').innerHTML = svgBarChart(data.byCriterion, {labelKey:'criterion_text', valueKey:'avgPct', nKey:'n', emptyMsg:'კრიტერიუმების მონაცემები არ მოიძებნა'});
+  $('#swSection').innerHTML = renderStrengthsWeaknesses(data.strengthsWeaknesses);
+}
+
+/* ========================================================================
+   VIEW: OBSERVE (start/stop recording)
+   ======================================================================== */
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordTimerInterval = null;
+let recordStartTime = null;
+let recordStream = null;
+
+async function renderObserve(){
+  const canRecord = !!PERMS.observe?.edit;
+  const branchOptions = BRANCHES.map(b => `<option value="${b.id}" ${b.id===ME.branch_id?'selected':''}>${esc(b.name)}</option>`).join('');
+  const employeeField = (ME.role !== 'employee') ? `
+    <div class="field" style="margin-top:16px;">
+      <label>თანამშრომელი (არასავალდებულო — ცარიელი ნიშნავს საკუთარ თავს)</label>
+      <select id="obsEmployee"><option value="">— მე —</option>${USERS.filter(u=>u.role==='employee').map(u=>`<option value="${u.id}">${esc(u.full_name)}</option>`).join('')}</select>
+    </div>` : '';
+
+  $('#content').innerHTML = `
+    <div class="card recorder-wrap">
+      <h3>მომხმარებელზე დაკვირვების აუდიო ჩაწერა</h3>
+      ${canRecord ? `<p class="muted">დააჭირეთ ღილაკს ჩაწერის დასაწყებად და ისევ იმავეს — დასასრულებლად.</p>` : `<div class="error-msg">ჩაწერის დაწყების უფლება არ გაქვთ.</div>`}
+      <div class="timer" id="obsTimer">00:00</div>
+      <button class="record-btn" id="recordBtn" ${canRecord ? '' : 'disabled'}>დაწყება<span class="rec-dot" id="recDot" style="display:none;"></span></button>
+      <div id="obsPreview" style="display:none;margin-top:10px;">
+        <audio controls id="obsAudioPreview" style="width:100%;"></audio>
+      </div>
+      <div style="text-align:left;margin-top:18px;">
+        <div class="field"><label>ფილიალი</label><select id="obsBranch">${branchOptions}</select></div>
+        ${employeeField}
+        <div class="field"><label>შენიშვნა (მაგ. მომხმარებლის სახელი, პროდუქტი)</label><textarea id="obsNote" rows="2"></textarea></div>
+      </div>
+      <button class="btn btn-primary btn-block" id="obsSaveBtn" style="display:none;margin-top:10px;">ჩანაწერის შენახვა</button>
+    </div>
+  `;
+
+  if (canRecord) $('#recordBtn').addEventListener('click', toggleRecording);
+}
+
+async function toggleRecording(){
+  const btn = $('#recordBtn');
+  if (!mediaRecorder || mediaRecorder.state === 'inactive'){
+    try{
+      recordStream = await navigator.mediaDevices.getUserMedia({audio:true});
+    }catch(e){
+      showToast('მიკროფონზე წვდომა ვერ მოხერხდა', true);
+      return;
+    }
+    recordedChunks = [];
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+    mediaRecorder = new MediaRecorder(recordStream, mimeType ? {mimeType} : undefined);
+    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunks, {type: mediaRecorder.mimeType || 'audio/webm'});
+      const url = URL.createObjectURL(blob);
+      $('#obsAudioPreview').src = url;
+      $('#obsPreview').style.display = 'block';
+      $('#obsSaveBtn').style.display = 'block';
+      $('#obsSaveBtn').onclick = () => saveObservationRecording(blob);
+      recordStream.getTracks().forEach(t => t.stop());
+    };
+    mediaRecorder.start();
+    recordStartTime = Date.now();
+    recordTimerInterval = setInterval(updateObsTimer, 250);
+    btn.textContent = 'დასრულება';
+    btn.classList.add('recording');
+    $('#recDot').style.display = 'inline-block';
+    $('#obsPreview').style.display = 'none';
+    $('#obsSaveBtn').style.display = 'none';
+  } else {
+    mediaRecorder.stop();
+    clearInterval(recordTimerInterval);
+    btn.textContent = 'დაწყება';
+    btn.classList.remove('recording');
+    $('#recDot').style.display = 'none';
+  }
+}
+
+function updateObsTimer(){
+  const sec = Math.floor((Date.now() - recordStartTime) / 1000);
+  const m = Math.floor(sec/60), s = sec%60;
+  $('#obsTimer').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+async function saveObservationRecording(blob){
+  const durationSec = Math.floor((Date.now() - recordStartTime) / 1000);
+  const fd = new FormData();
+  fd.append('audio', blob, `observation_${Date.now()}.webm`);
+  fd.append('branch_id', $('#obsBranch').value);
+  fd.append('note', $('#obsNote').value);
+  fd.append('duration_seconds', durationSec);
+  const empSel = $('#obsEmployee');
+  if (empSel && empSel.value) fd.append('employee_id', empSel.value);
+
+  $('#obsSaveBtn').disabled = true;
+  $('#obsSaveBtn').textContent = 'ინახება…';
+  try{
+    await api('/recordings/observation', {method:'POST', body:fd});
+    showToast('ჩანაწერი შენახულია');
+    await renderObserve();
+  }catch(e){
+    showToast('შენახვა ვერ მოხერხდა: ' + e.message, true);
+    $('#obsSaveBtn').disabled = false;
+    $('#obsSaveBtn').textContent = 'ჩანაწერის შენახვა';
+  }
+}
+
+/* ========================================================================
+   VIEW: MANUAL UPLOAD
+   ======================================================================== */
+async function renderManualUpload(){
+  const canUpload = !!PERMS['manual-upload']?.edit;
+  const branchOptions = BRANCHES.map(b => `<option value="${b.id}">${esc(b.name)}</option>`).join('');
+  const employeeOptions = USERS.filter(u => u.role === 'employee').map(u => `<option value="${u.id}">${esc(u.full_name)}</option>`).join('');
+  $('#content').innerHTML = `
+    <div class="card" style="max-width:560px;">
+      <h3>ზარის აუდიო ფაილების ხელით ატვირთვა</h3>
+      ${canUpload ? '' : `<div class="error-msg">ატვირთვის უფლება არ გაქვთ.</div>`}
+      <div class="field"><label>აუდიო ფაილ(ებ)ი</label><input type="file" id="manualFiles" accept="audio/*" multiple ${canUpload?'':'disabled'}></div>
+      <div class="field"><label>ფილიალი</label><select id="manualBranch" ${canUpload?'':'disabled'}><option value="">— არ არის მითითებული —</option>${branchOptions}</select></div>
+      <div class="field"><label>თანამშრომელი</label><select id="manualEmployee" ${canUpload?'':'disabled'}><option value="">— არ არის მითითებული —</option>${employeeOptions}</select></div>
+      <div class="field"><label>შენიშვნა</label><textarea id="manualNote" rows="2" ${canUpload?'':'disabled'}></textarea></div>
+      <button class="btn btn-primary" id="manualUploadBtn" ${canUpload?'':'disabled'}>ატვირთვა</button>
+    </div>
+  `;
+  if (!canUpload) return;
+  $('#manualUploadBtn').addEventListener('click', async () => {
+    const files = $('#manualFiles').files;
+    if (!files || files.length === 0) return showToast('აირჩიეთ მინიმუმ ერთი ფაილი', true);
+    const fd = new FormData();
+    for (const f of files) fd.append('audio', f);
+    fd.append('branch_id', $('#manualBranch').value);
+    fd.append('employee_id', $('#manualEmployee').value);
+    fd.append('note', $('#manualNote').value);
+    $('#manualUploadBtn').disabled = true;
+    $('#manualUploadBtn').textContent = 'იტვირთება…';
+    try{
+      await api('/recordings/manual', {method:'POST', body:fd});
+      showToast('ატვირთვა დასრულდა');
+      navigate('recordings');
+    }catch(e){
+      showToast('ატვირთვა ვერ მოხერხდა: ' + e.message, true);
+    }finally{
+      $('#manualUploadBtn').disabled = false;
+      $('#manualUploadBtn').textContent = 'ატვირთვა';
+    }
+  });
+}
+
+/* ========================================================================
+   VIEW: CRITERIA TEMPLATES
+   ======================================================================== */
+async function renderCriteria(){
+  TEMPLATES = await api('/criteria-templates');
+  const canEdit = !!PERMS.criteria?.edit;
+  $('#content').innerHTML = `
+    ${canEdit ? `<div style="margin-bottom:16px;"><button class="btn btn-primary" onclick="openTemplateEditor()">+ ახალი შაბლონი</button></div>` : ''}
+    <div id="templateList"></div>
+  `;
+  const list = $('#templateList');
+  if (TEMPLATES.length === 0){
+    list.innerHTML = '<div class="card empty-state">შაბლონები ჯერ არ არის შექმნილი</div>';
+    return;
+  }
+  list.innerHTML = TEMPLATES.map(t => `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <h3 style="margin-bottom:4px;">${esc(t.name)}</h3>
+          <p class="muted" style="margin:0 0 10px;">${esc(t.description || '')}</p>
+        </div>
+        ${canEdit ? `<div style="display:flex;gap:8px;">
+          <button class="icon-btn" onclick='openTemplateEditor(${t.id})'>რედაქტირება</button>
+          <button class="btn btn-danger" onclick="deleteTemplate(${t.id})">წაშლა</button>
+        </div>` : ''}
+      </div>
+      <table><tbody>
+        ${t.items.map(it => `<tr><td style="white-space:normal;">${esc(it.text)}</td><td style="width:90px;text-align:left;">მაქს. ${it.max_score}</td></tr>`).join('')}
+      </tbody></table>
+    </div>
+  `).join('');
+}
+
+function openTemplateEditor(templateId){
+  if (!PERMS.criteria?.edit) return;
+  const t = templateId ? TEMPLATES.find(x => x.id === templateId) : null;
+  const items = t ? t.items : [{text:'', max_score:10}];
+  openModal(`
+    <div class="modal-header"><h3>${t ? 'შაბლონის რედაქტირება' : 'ახალი შეფასების შაბლონი'}</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
+    <div class="field"><label>დასახელება</label><input type="text" id="tplName" value="${t ? esc(t.name) : ''}"></div>
+    <div class="field"><label>აღწერა (არასავალდებულო)</label><input type="text" id="tplDesc" value="${t ? esc(t.description||'') : ''}"></div>
+    <label style="font-weight:600;font-size:13px;">კრიტერიუმები</label>
+    <div id="tplItems" style="margin-top:8px;">
+      ${items.map(renderCriteriaItemRow).join('')}
+    </div>
+    <button class="btn btn-outline" id="addItemBtn" style="margin-top:6px;">+ კრიტერიუმის დამატება</button>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">გაუქმება</button>
+      <button class="btn btn-primary" id="saveTplBtn">შენახვა</button>
+    </div>
+  `, true);
+
+  $('#addItemBtn').addEventListener('click', () => {
+    $('#tplItems').insertAdjacentHTML('beforeend', renderCriteriaItemRow({text:'', max_score:10}));
+    bindItemRemoves();
+  });
+  bindItemRemoves();
+
+  $('#saveTplBtn').addEventListener('click', async () => {
+    const name = $('#tplName').value.trim();
+    const description = $('#tplDesc').value.trim();
+    const rows = $$('.criteria-item-row', $('#tplItems'));
+    const itemsPayload = rows.map(r => ({
+      text: $('textarea', r).value.trim(),
+      max_score: Number($('input[type=number]', r).value) || 10,
+    })).filter(it => it.text);
+    if (!name || itemsPayload.length === 0) return showToast('შეავსეთ დასახელება და მინიმუმ ერთი კრიტერიუმი', true);
+    $('#saveTplBtn').disabled = true;
+    try{
+      if (t) await api('/criteria-templates/' + t.id, {method:'PUT', body:{name, description, items: itemsPayload}});
+      else await api('/criteria-templates', {method:'POST', body:{name, description, items: itemsPayload}});
+      showToast('შენახულია');
+      closeModal();
+      await renderCriteria();
+    }catch(e){
+      showToast('შენახვა ვერ მოხერხდა: ' + e.message, true);
+      $('#saveTplBtn').disabled = false;
+    }
+  });
+}
+
+function renderCriteriaItemRow(it){
+  return `<div class="criteria-item-row">
+    <textarea placeholder="მაგ. თანამშრომელმა მიესალმა მომხმარებელს">${esc(it.text)}</textarea>
+    <input type="number" min="1" max="100" value="${it.max_score}" title="მაქსიმალური ქულა">
+    <button class="icon-btn removeItemBtn" title="წაშლა" type="button">&times;</button>
+  </div>`;
+}
+function bindItemRemoves(){
+  $$('.removeItemBtn').forEach(b => b.onclick = () => b.closest('.criteria-item-row').remove());
+}
+
+async function deleteTemplate(id){
+  if (!confirm('ნამდვილად გსურთ შაბლონის წაშლა?')) return;
+  await api('/criteria-templates/' + id, {method:'DELETE'});
+  showToast('შაბლონი წაიშალა');
+  renderCriteria();
+}
+
+/* ========================================================================
+   VIEW: USERS (admin)
+   ======================================================================== */
+async function renderUsers(){
+  USERS = await api('/users');
+  const canEdit = !!PERMS.users?.edit;
+  $('#content').innerHTML = `
+    ${canEdit ? `<div style="margin-bottom:16px;"><button class="btn btn-primary" onclick="openUserEditor()">+ ახალი თანამშრომელი</button></div>` : ''}
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>სახელი</th><th>მომხმარებელი</th><th>როლი</th><th>ფილიალი</th><th>სტატუსი</th><th></th></tr></thead>
+          <tbody>
+            ${USERS.map(u => `<tr>
+              <td>${esc(u.full_name)}</td>
+              <td>${esc(u.username)}</td>
+              <td><span class="role-badge ${u.role}">${ROLE_LABELS[u.role]}</span></td>
+              <td>${esc(u.branch_name || '—')}</td>
+              <td>${u.active ? '<span class="status-pill status-evaluated">აქტიური</span>' : '<span class="status-pill status-error">გაუქმებული</span>'}</td>
+              <td>
+                ${canEdit ? `<button class="icon-btn" onclick='openUserEditor(${u.id})'>რედაქტირება</button>` : ''}
+                ${canEdit && u.id !== ME.id ? `<button class="btn btn-danger" onclick="deleteUser(${u.id})">წაშლა</button>` : ''}
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    ${ME.role === 'admin' ? `<div class="card" id="permMatrixCard"><h3>როლების წვდომის მართვა</h3><p class="muted">მიუთითეთ, რომელ გვერდს რომელ როლს შეუძლია ნახოს და/ან შეცვალოს. ადმინისტრატორს ყოველთვის აქვს სრული წვდომა.</p><div id="permMatrixWrap"><div class="hint">იტვირთება...</div></div></div>` : ''}
+  `;
+  if (ME.role === 'admin') await renderPermMatrix();
+}
+
+async function renderPermMatrix(){
+  const { pages, matrix } = await api('/permissions');
+  const roles = [{id:'manager', label:'მენეჯერი'}, {id:'employee', label:'თანამშრომელი'}];
+  const wrap = $('#permMatrixWrap');
+  wrap.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>გვერდი</th>${roles.map(r => `<th colspan="2" style="text-align:center;">${r.label}</th>`).join('')}</tr>
+        <tr><th></th>${roles.map(() => `<th style="text-align:center;">ნახვა</th><th style="text-align:center;">რედაქტირება</th>`).join('')}</tr></thead>
+        <tbody>
+          ${pages.map(p => `<tr>
+            <td>${esc(p.label)}</td>
+            ${roles.map(r => {
+              const entry = (matrix[r.id] && matrix[r.id][p.id]) || {view:false, edit:false};
+              return `
+                <td style="text-align:center;"><input type="checkbox" class="permView" data-role="${r.id}" data-page="${p.id}" ${entry.view ? 'checked' : ''} style="width:auto;"></td>
+                <td style="text-align:center;">${p.hasEdit ? `<input type="checkbox" class="permEdit" data-role="${r.id}" data-page="${p.id}" ${entry.edit ? 'checked' : ''} style="width:auto;">` : '—'}</td>
+              `;
+            }).join('')}
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <button class="btn btn-primary" id="savePermBtn" style="margin-top:14px;">უფლებების შენახვა</button>
+  `;
+  // Editing a page's view off implies its edit should turn off too (can't edit what you can't view).
+  $$('.permView', wrap).forEach(cb => cb.addEventListener('change', () => {
+    if (!cb.checked) {
+      const editCb = $(`.permEdit[data-role="${cb.dataset.role}"][data-page="${cb.dataset.page}"]`, wrap);
+      if (editCb) editCb.checked = false;
+    }
+  }));
+  $$('.permEdit', wrap).forEach(cb => cb.addEventListener('change', () => {
+    if (cb.checked) {
+      const viewCb = $(`.permView[data-role="${cb.dataset.role}"][data-page="${cb.dataset.page}"]`, wrap);
+      if (viewCb) viewCb.checked = true;
+    }
+  }));
+  $('#savePermBtn').addEventListener('click', async () => {
+    const newMatrix = {manager:{}, employee:{}};
+    pages.forEach(p => {
+      roles.forEach(r => {
+        const viewCb = $(`.permView[data-role="${r.id}"][data-page="${p.id}"]`, wrap);
+        const editCb = $(`.permEdit[data-role="${r.id}"][data-page="${p.id}"]`, wrap);
+        newMatrix[r.id][p.id] = { view: !!(viewCb && viewCb.checked), edit: !!(editCb && editCb.checked) };
+      });
+    });
+    $('#savePermBtn').disabled = true;
+    try{
+      await api('/permissions', {method:'PUT', body:{matrix: newMatrix}});
+      showToast('უფლებები შენახულია');
+      if (ME.role !== 'admin') { PERMS = await api('/permissions/me'); buildNav(); }
+    }catch(e){
+      showToast('შენახვა ვერ მოხერხდა: ' + e.message, true);
+    }finally{
+      $('#savePermBtn').disabled = false;
+    }
+  });
+}
+
+function openUserEditor(userId){
+  if (!PERMS.users?.edit) return;
+  const u = userId ? USERS.find(x => x.id === userId) : null;
+  const branchOptions = BRANCHES.map(b => `<option value="${b.id}" ${u&&u.branch_id===b.id?'selected':''}>${esc(b.name)}</option>`).join('');
+  openModal(`
+    <div class="modal-header"><h3>${u ? 'თანამშრომლის რედაქტირება' : 'ახალი თანამშრომელი'}</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
+    <div class="field"><label>სრული სახელი</label><input type="text" id="uFullName" value="${u ? esc(u.full_name) : ''}"></div>
+    <div class="field"><label>მომხმარებლის სახელი (login)</label><input type="text" id="uUsername" value="${u ? esc(u.username) : ''}" ${u ? 'disabled' : ''}></div>
+    <div class="field"><label>${u ? 'ახალი პაროლი (თუ არ ცვლით, დატოვეთ ცარიელი)' : 'პაროლი'}</label><input type="password" id="uPassword"></div>
+    <div class="field"><label>როლი</label>
+      <select id="uRole">
+        <option value="employee" ${u&&u.role==='employee'?'selected':''}>თანამშრომელი</option>
+        <option value="manager" ${u&&u.role==='manager'?'selected':''}>მენეჯერი</option>
+        <option value="admin" ${u&&u.role==='admin'?'selected':''}>ადმინისტრატორი</option>
+      </select>
+    </div>
+    <div class="field"><label>ფილიალი</label><select id="uBranch"><option value="">— არ არის მითითებული —</option>${branchOptions}</select></div>
+    ${u ? `<div class="field"><label><input type="checkbox" id="uActive" ${u.active?'checked':''} style="width:auto;"> აქტიური</label></div>` : ''}
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">გაუქმება</button>
+      <button class="btn btn-primary" id="saveUserBtn">შენახვა</button>
+    </div>
+  `);
+
+  $('#saveUserBtn').addEventListener('click', async () => {
+    const full_name = $('#uFullName').value.trim();
+    const username = $('#uUsername').value.trim();
+    const password = $('#uPassword').value;
+    const role = $('#uRole').value;
+    const branch_id = $('#uBranch').value || null;
+    if (!full_name || (!u && (!username || !password))) return showToast('შეავსეთ სავალდებულო ველები', true);
+    $('#saveUserBtn').disabled = true;
+    try{
+      if (u){
+        await api('/users/' + u.id, {method:'PUT', body:{full_name, role, branch_id, active: $('#uActive').checked, password: password || undefined}});
+      } else {
+        await api('/users', {method:'POST', body:{username, password, full_name, role, branch_id}});
+      }
+      showToast('შენახულია');
+      closeModal();
+      await renderUsers();
+    }catch(e){
+      showToast('შენახვა ვერ მოხერხდა: ' + e.message, true);
+      $('#saveUserBtn').disabled = false;
+    }
+  });
+}
+
+async function deleteUser(id){
+  if (!confirm('ნამდვილად გსურთ წაშლა?')) return;
+  try{
+    await api('/users/' + id, {method:'DELETE'});
+    showToast('წაიშალა');
+    renderUsers();
+  }catch(e){ showToast(e.message, true); }
+}
+
+/* ========================================================================
+   VIEW: BRANCHES (admin)
+   ======================================================================== */
+async function renderBranches(){
+  BRANCHES = await api('/branches');
+  const canEdit = !!PERMS.branches?.edit;
+  $('#content').innerHTML = `
+    ${canEdit ? `<div class="card" style="max-width:480px;">
+      <h3>ახალი ფილიალი</h3>
+      <div style="display:flex;gap:10px;">
+        <input type="text" id="newBranchName" placeholder="ფილიალის დასახელება" style="flex:1;">
+        <button class="btn btn-primary" id="addBranchBtn">დამატება</button>
+      </div>
+    </div>` : ''}
+    <div class="card" style="max-width:480px;">
+      <table><tbody>
+        ${BRANCHES.map(b => `<tr><td>${esc(b.name)}</td><td style="text-align:left;">${canEdit ? `<button class="btn btn-danger" onclick="deleteBranch(${b.id})">წაშლა</button>` : ''}</td></tr>`).join('')}
+      </tbody></table>
+    </div>
+  `;
+  if (canEdit) $('#addBranchBtn').addEventListener('click', async () => {
+    const name = $('#newBranchName').value.trim();
+    if (!name) return;
+    try{
+      await api('/branches', {method:'POST', body:{name}});
+      renderBranches();
+    }catch(e){ showToast(e.message, true); }
+  });
+}
+async function deleteBranch(id){
+  if (!PERMS.branches?.edit) return;
+  if (!confirm('ნამდვილად გსურთ წაშლა?')) return;
+  await api('/branches/' + id, {method:'DELETE'});
+  renderBranches();
+}
+
+/* ========================================================================
+   VIEW: SETTINGS (admin)
+   ======================================================================== */
+async function renderSettings(){
+  const [s, templates] = await Promise.all([api('/settings'), api('/criteria-templates')]);
+  TEMPLATES = templates;
+  const canEdit = !!PERMS.settings?.edit;
+  const autoIds = new Set(s.auto_evaluate_template_ids || []);
+  $('#content').innerHTML = `
+    <div class="card" style="max-width:520px;">
+      <h3>GEMINI API კონფიგურაცია</h3>
+      <p class="muted">API გასაღები ინახება ლოკალურად, სერვერის მონაცემთა ბაზაში.</p>
+      <div class="field">
+        <label>API გასაღები ${s.gemini_api_key_set ? `(მიმდინარე: ${s.gemini_api_key_masked})` : ''}</label>
+        <input type="password" id="setKey" placeholder="${s.gemini_api_key_set ? 'შეიყვანეთ ახალი, თუ გსურთ შეცვლა' : 'AIza...'}" ${canEdit ? '' : 'disabled'}>
+      </div>
+      <div class="field">
+        <label>მოდელი</label>
+        <input type="text" id="setModel" value="${esc(s.gemini_model)}" ${canEdit ? '' : 'disabled'}>
+      </div>
+      ${canEdit ? `<button class="btn btn-primary" id="saveSettingsBtn">შენახვა</button>` : `<p class="hint">ამ სექციის რედაქტირების უფლება არ გაქვთ.</p>`}
+    </div>
+    <div class="card" style="max-width:520px;">
+      <h3>ავტომატური გაგზავნა GEMINI-ში</h3>
+      <p class="muted">გამორთულ მდგომარეობაში ახალი ჩანაწერი (დაკვირვების ან ხელით ატვირთული) არავითარ შემთხვევაში არ იგზავნება — შეფასებას მხოლოდ თქვენ იწყებთ ხელით, ჩანაწერის დეტალებში. ჩართვის შემთხვევაში ყოველი ახალი ჩანაწერი ავტომატურად შეფასდება ქვემოთ მონიშნული შაბლონ(ებ)ით.</p>
+      <label class="checkbox-row" style="border:none;">
+        <input type="checkbox" id="autoEvalToggle" ${s.auto_evaluate_enabled ? 'checked' : ''} ${canEdit ? '' : 'disabled'}>
+        <span><strong>ავტომატური შეფასების ჩართვა</strong></span>
+      </label>
+      <div id="autoEvalTemplates" style="margin-top:10px;${s.auto_evaluate_enabled ? '' : 'display:none;'}">
+        <label style="font-weight:600;font-size:13px;">რომელი შაბლონებით შეფასდეს ავტომატურად</label>
+        ${templates.length === 0 ? '<p class="hint">ჯერ არ გაქვთ შექმნილი შეფასების შაბლონი.</p>' : templates.map(t => `
+          <label class="checkbox-row">
+            <input type="checkbox" class="autoTplCheck" value="${t.id}" ${autoIds.has(t.id) ? 'checked' : ''} ${canEdit ? '' : 'disabled'}>
+            <span>${esc(t.name)}</span>
+          </label>
+        `).join('')}
+      </div>
+      ${canEdit ? `<button class="btn btn-primary" id="saveAutoEvalBtn" style="margin-top:14px;">შენახვა</button>` : ''}
+    </div>
+    <div class="card" style="max-width:520px;">
+      <h3>API იმპორტის გასაღები</h3>
+      <p class="muted">გარე სისტემიდან (მაგ. საკუთარი Python სკრიპტიდან) ჩანაწერების პროგრამულად შემოსატანად — იხილეთ დოკუმენტაცია README-ში, ველი „POST /api/import/recording“.</p>
+      <div class="field">
+        <label>მიმდინარე გასაღები ${s.api_import_key_set ? `(${s.api_import_key_masked})` : '(ჯერ არ არის გენერირებული)'}</label>
+      </div>
+      ${canEdit ? `<button class="btn btn-outline" id="regenApiKeyBtn">${s.api_import_key_set ? 'ახალი გასაღების გენერაცია' : 'გასაღების გენერაცია'}</button>` : ''}
+    </div>
+    ${ME.role === 'admin' ? `<div class="card" style="max-width:520px;">
+      <h3>ბექაფი და აღდგენა</h3>
+      <p class="muted">ბექაფი მოიცავს ყველაფერს: ჩანაწერებს, შეფასებებს, თანამშრომლებს, ფოტოებს და პარამეტრებს (Gemini/API გასაღებების ჩათვლით) — შეინახეთ უსაფრთხო ადგილას. აღდგენა <strong>მთლიანად ჩაანაცვლებს</strong> ამ სერვერის ახლანდელ მონაცემებს და სერვერი თავად გადაიტვირთება.</p>
+      <a class="btn btn-outline" href="/api/admin/backup" style="display:inline-block;text-decoration:none;">ბექაფის ჩამოტვირთვა</a>
+      <div class="field" style="margin-top:16px;"><label>ბექაფიდან აღდგენა (.tar.gz)</label><input type="file" id="restoreFile" accept=".gz,.tgz,application/gzip"></div>
+      <button class="btn btn-danger" id="restoreBtn">აღდგენა</button>
+    </div>` : ''}
+    <div class="card" style="max-width:520px;">
+      <h3>ჩემი პაროლის შეცვლა</h3>
+      <div class="field"><label>მიმდინარე პაროლი</label><input type="password" id="curPass"></div>
+      <div class="field"><label>ახალი პაროლი</label><input type="password" id="newPass"></div>
+      <button class="btn btn-outline" id="changePassBtn">პაროლის შეცვლა</button>
+    </div>
+  `;
+  if (canEdit) $('#saveSettingsBtn').addEventListener('click', async () => {
+    try{
+      await api('/settings', {method:'PUT', body:{gemini_api_key: $('#setKey').value || undefined, gemini_model: $('#setModel').value}});
+      showToast('შენახულია');
+      renderSettings();
+    }catch(e){ showToast(e.message, true); }
+  });
+  $('#autoEvalToggle').addEventListener('change', (e) => {
+    $('#autoEvalTemplates').style.display = e.target.checked ? 'block' : 'none';
+  });
+  if (canEdit) $('#saveAutoEvalBtn').addEventListener('click', async () => {
+    const enabled = $('#autoEvalToggle').checked;
+    const ids = $$('.autoTplCheck:checked').map(cb => Number(cb.value));
+    if (enabled && ids.length === 0) return showToast('აირჩიეთ სულ მცირე ერთი შაბლონი, ან გამორთეთ ავტომატური რეჟიმი', true);
+    try{
+      await api('/settings', {method:'PUT', body:{auto_evaluate_enabled: enabled, auto_evaluate_template_ids: ids}});
+      showToast('შენახულია');
+    }catch(e){ showToast(e.message, true); }
+  });
+  if (canEdit) $('#regenApiKeyBtn').addEventListener('click', async () => {
+    if (s.api_import_key_set && !confirm('ახალი გასაღების გენერაციის შემდეგ ძველი გასაღები აღარ იმუშავებს — დარწმუნებული ხართ?')) return;
+    try{
+      const r = await api('/settings', {method:'PUT', body:{regenerate_api_import_key: true}});
+      openModal(`
+        <div class="modal-header"><h3>ახალი API გასაღები</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
+        <p class="muted">ეს გასაღები მხოლოდ ერთხელ გამოჩნდება — დააკოპირეთ ახლავე და გამოიყენეთ თქვენს Python სკრიპტში (HTTP header: <code>X-API-Key</code>).</p>
+        <div class="field"><input type="text" readonly value="${esc(r.api_import_key)}" onclick="this.select()" style="font-family:monospace;"></div>
+        <div class="modal-actions"><button class="btn btn-primary" onclick="closeModal()">გასაგებია</button></div>
+      `);
+      renderSettings();
+    }catch(e){ showToast('ვერ მოხერხდა: ' + e.message, true); }
+  });
+  if (ME.role === 'admin') $('#restoreBtn').addEventListener('click', async () => {
+    const f = $('#restoreFile').files[0];
+    if (!f) return showToast('აირჩიეთ ბექაფის ფაილი', true);
+    if (!confirm('ახლანდელი მონაცემები მთლიანად წაიშლება და ჩანაცვლდება ბექაფით. გავაგრძელოთ?')) return;
+    const fd = new FormData(); fd.append('backup', f);
+    try{
+      const resp = await fetch('/api/admin/restore', {method:'POST', body: fd, credentials:'same-origin'});
+      if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).error || resp.status);
+      showToast('ბექაფი მიღებულია — სერვერი გადაიტვირთება, 30-60 წამში შედით თავიდან');
+      setTimeout(() => location.reload(), 20000);
+    }catch(e){ showToast('ვერ მოხერხდა: ' + e.message, true); }
+  });
+  $('#changePassBtn').addEventListener('click', async () => {
+    try{
+      await api('/auth/change-password', {method:'POST', body:{current_password: $('#curPass').value, new_password: $('#newPass').value}});
+      showToast('პაროლი შეიცვალა');
+    }catch(e){ showToast('ვერ მოხერხდა: ' + e.message, true); }
+  });
+}
+
+boot();
+</script>
+</body>
+</html>
