@@ -8,7 +8,7 @@ services:
     healthCheckPath: /healthz
     envVars:
       - key: NODE_VERSION
-        value: 22.12.0       # node:sqlite needs Node >= 22.5
+        value: 24       # node:sqlite needs Node >= 22.5
       - key: NODE_ENV
         value: production
       - key: DATA_DIR
